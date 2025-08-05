@@ -9,16 +9,26 @@ import Loader from "../common/Loader";
 import { DeleteConfirmation } from "../common/DeleteConfirmation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AddProductDialog } from "./AddProductDialog";
+import { ProductDialog } from "./ProductDialog"; // Updated import
 import { ViewProductDialog } from "./ViewProductDIalog";
 
 const ProductList = () => {
   const queryClient = useQueryClient();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isProductDialogOpen, setIsProductDialogOpen] = useState(false); // Unified dialog state
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<number | null>(null);
   const [productToView, setProductToView] = useState<number | null>(null);
+  const [productToEdit, setProductToEdit] = useState<{
+    id: number;
+    title: string;
+    price: number;
+    description: string;
+    categoryId: number;
+    images?: string[];
+  } | null>(null); // Match the Product interface from ProductDialog
+  const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add'); // Dialog mode
+
   // Fetch categories for the dialog
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -32,6 +42,7 @@ const ProductList = () => {
       return await response.json();
     },
   });
+
   const selectedCategories = useAppSelector(
     (state) => state.categoryFilter.selectedCategories
   );
@@ -65,6 +76,35 @@ const ProductList = () => {
       console.error("Error deleting product:", error);
     },
   });
+
+  // Helper functions to open dialogs
+  const openAddDialog = () => {
+    setDialogMode('add');
+    setProductToEdit(null);
+    setIsProductDialogOpen(true);
+  };
+
+  const openEditDialog = (product: ProductType) => {
+    setDialogMode('edit');
+    // Transform ProductType to match Product interface expected by dialog
+    const editProduct = {
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      description: product.description,
+      categoryId: product.category.id, // Extract categoryId from nested category
+      images: product.images || [],
+    };
+    setProductToEdit(editProduct);
+    setIsProductDialogOpen(true);
+  };
+
+  const closeProductDialog = () => {
+    setIsProductDialogOpen(false);
+    setProductToEdit(null);
+    setDialogMode('add');
+  };
+
   if (isLoading)
     return (
       <div className="p-6">
@@ -108,9 +148,7 @@ const ProductList = () => {
             />
             <Edit
               className="cursor-pointer text-amber-500"
-              onClick={() => {
-                console.log("Edit product:", row.original.id);
-              }}
+              onClick={() => openEditDialog(row.original)} // Updated to use helper function
               size={16}
             />
             <Trash
@@ -126,10 +164,12 @@ const ProductList = () => {
       },
     },
   ];
+
   const handleDelete = async () => {
     if (!productToDelete) return;
     deleteProductMutation.mutate(productToDelete);
   };
+
   return (
     <div>
       <DataTable
@@ -140,8 +180,9 @@ const ProductList = () => {
         searchableField={["title"]}
         showActionButton
         actionButtonName="Add Product"
-        onActionButtonClick={() => setIsAddDialogOpen(true)} // Open dialog
+        onActionButtonClick={openAddDialog} // Updated to use helper function
       />
+      
       <DeleteConfirmation
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
@@ -150,11 +191,16 @@ const ProductList = () => {
         description="Are you sure you want to delete this product? "
         confirmButtonText="Confirm Delete"
       />
-      <AddProductDialog
-        isOpen={isAddDialogOpen}
-        onClose={() => setIsAddDialogOpen(false)}
+      
+      {/* Unified ProductDialog for both add and edit */}
+      <ProductDialog
+        isOpen={isProductDialogOpen}
+        onClose={closeProductDialog}
         categories={categories || []}
+        product={productToEdit}
+        mode={dialogMode}
       />
+      
       <ViewProductDialog
         isOpen={isViewDialogOpen}
         onClose={() => {

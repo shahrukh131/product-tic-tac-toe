@@ -1,4 +1,5 @@
-import React from "react";
+'use client';
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -52,9 +53,10 @@ const productSchema = yup.object({
     .number()
     .required("Category is required")
     .min(1, "Please select a valid category"),
-  images: yup.array().of(
-    yup.string().url("Please enter a valid URL")
-  ).optional(),
+  images: yup
+    .array()
+    .of(yup.string().url("Please enter a valid URL"))
+    .optional(),
 });
 
 type ProductFormData = yup.InferType<typeof productSchema>;
@@ -64,18 +66,32 @@ interface Category {
   name: string;
 }
 
-interface AddProductDialogProps {
+interface Product {
+  id: number;
+  title: string;
+  price: number;
+  description: string;
+  categoryId: number;
+  images?: string[];
+}
+
+interface ProductDialogProps {
   isOpen: boolean;
   onClose: () => void;
   categories?: Category[];
+  product?: Product | null; // null for add mode, Product object for edit mode
+  mode?: "add" | "edit";
 }
 
-export const AddProductDialog: React.FC<AddProductDialogProps> = ({
+export const ProductDialog: React.FC<ProductDialogProps> = ({
   isOpen,
   onClose,
   categories = [],
+  product = null,
+  mode = product ? "edit" : "add",
 }) => {
   const queryClient = useQueryClient();
+  const isEditMode = mode === "edit" && product;
 
   const form = useForm<ProductFormData>({
     resolver: yupResolver<ProductFormData>(productSchema),
@@ -88,6 +104,30 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
     },
   });
 
+  // Reset form when product changes or dialog opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditMode) {
+        form.reset({
+          title: product.title,
+          price: product.price,
+          description: product.description,
+          categoryId: product.categoryId,
+          images:
+            product.images && product.images.length > 0 ? product.images : [""],
+        });
+      } else {
+        form.reset({
+          title: "",
+          price: 0,
+          description: "",
+          categoryId: 0,
+          images: [""],
+        });
+      }
+    }
+  }, [isOpen, isEditMode, product, form]);
+
   const addImageField = () => {
     const currentImages = form.getValues("images") || [];
     if (currentImages.length < 3) {
@@ -97,18 +137,25 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
 
   const removeImageField = (index: number) => {
     const currentImages = form.getValues("images") || [];
-    form.setValue("images", currentImages.filter((_, i) => i !== index));
+    form.setValue(
+      "images",
+      currentImages.filter((_, i) => i !== index)
+    );
   };
 
+  // Add 
   const addProductMutation = useMutation({
     mutationFn: async (productData: ProductFormData) => {
-      const response = await fetch("https://api.escuelajs.co/api/v1/products/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(productData),
-      });
+      const response = await fetch(
+        "https://api.escuelajs.co/api/v1/products/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productData),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to create product: ${response.statusText}`);
@@ -128,13 +175,54 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
     },
   });
 
- const onSubmit = (data: ProductFormData) => {
-    // Filter out empty image URLs
+  // Edit 
+  const editProductMutation = useMutation({
+    mutationFn: async (productData: ProductFormData) => {
+      if (!product?.id) {
+        throw new Error("Product ID is required for editing");
+      }
+
+      const response = await fetch(
+        `https://api.escuelajs.co/api/v1/products/${product.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to update product: ${response.statusText}`);
+      }
+
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product", product?.id] });
+      toast.success("Product updated successfully");
+      form.reset();
+      onClose();
+    },
+    onError: (error) => {
+      console.error("Error updating product:", error);
+      toast.error("Failed to update product. Please try again.");
+    },
+  });
+
+  const onSubmit = (data: ProductFormData) => {
     const filteredData = {
       ...data,
-      images: (data.images ?? []).filter(url => url?.trim() !== ""),
+      images: (data.images ?? []).filter((url) => url?.trim() !== ""),
     };
-    addProductMutation.mutate(filteredData);
+
+    if (isEditMode) {
+      editProductMutation.mutate(filteredData);
+    } else {
+      addProductMutation.mutate(filteredData);
+    }
   };
 
   const handleClose = () => {
@@ -142,16 +230,16 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
     onClose();
   };
 
-
+  const isLoading =
+    addProductMutation.isPending || editProductMutation.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Product</DialogTitle>
-          <DialogDescription>
-            Create a new product by filling in the details below.
-          </DialogDescription>
+          <DialogTitle>
+            {isEditMode ? "Edit Product" : "Add New Product"}
+          </DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -163,10 +251,7 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
                 <FormItem>
                   <FormLabel>Product Name *</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter product name"
-                      {...field}
-                    />
+                    <Input placeholder="Enter product name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -182,11 +267,13 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
                   <FormControl>
                     <Input
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
                       placeholder="0.00"
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value) || 0)
+                      }
                     />
                   </FormControl>
                   <FormMessage />
@@ -203,7 +290,6 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
                   <Select
                     onValueChange={(value) => field.onChange(parseInt(value))}
                     value={field.value.toString()}
-                   
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -212,7 +298,10 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
                     </FormControl>
                     <SelectContent>
                       {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
+                        <SelectItem
+                          key={category.id}
+                          value={category.id.toString()}
+                        >
                           {category.name}
                         </SelectItem>
                       ))}
@@ -243,7 +332,7 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
             />
 
             <div className="space-y-2">
-              <FormLabel>Product Images * (Max 3)</FormLabel>
+              <FormLabel>Product Images (Max 3)</FormLabel>
               {(form.watch("images") || []).map((_, index) => (
                 <FormField
                   key={index}
@@ -253,10 +342,7 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
                     <FormItem>
                       <div className="flex gap-2">
                         <FormControl>
-                          <Input
-                            placeholder="Enter image URL"
-                            {...field}
-                          />
+                          <Input placeholder="Enter image URL" {...field} />
                         </FormControl>
                         {(form.watch("images") ?? []).length > 1 && (
                           <Button
@@ -274,7 +360,7 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
                   )}
                 />
               ))}
-              
+
               {(form.watch("images") ?? []).length < 3 && (
                 <Button
                   type="button"
@@ -288,21 +374,23 @@ export const AddProductDialog: React.FC<AddProductDialogProps> = ({
               )}
             </div>
 
-
             <DialogFooter className="gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClose}
-                disabled={addProductMutation.isPending}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={addProductMutation.isPending}
-              >
-                {addProductMutation.isPending ? "Creating..." : "Create Product"}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading
+                  ? isEditMode
+                    ? "Updating..."
+                    : "Creating..."
+                  : isEditMode
+                  ? "Update Product"
+                  : "Create Product"}
               </Button>
             </DialogFooter>
           </form>
