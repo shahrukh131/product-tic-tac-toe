@@ -56,7 +56,8 @@ const productSchema = yup.object({
   images: yup
     .array()
     .of(yup.string().url("Please enter a valid URL"))
-    .optional(),
+    .optional()
+    .default([]),
 });
 
 type ProductFormData = yup.InferType<typeof productSchema>;
@@ -94,7 +95,7 @@ export const ProductDialog: React.FC<ProductDialogProps> = ({
   const isEditMode = mode === "edit" && product;
 
   const form = useForm<ProductFormData>({
-    resolver: yupResolver<ProductFormData>(productSchema),
+    resolver: yupResolver(productSchema),
     defaultValues: {
       title: "",
       price: 0,
