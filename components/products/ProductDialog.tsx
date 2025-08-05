@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -144,7 +143,7 @@ export const ProductDialog: React.FC<ProductDialogProps> = ({
     );
   };
 
-  // Add 
+  // Add
   const addProductMutation = useMutation({
     mutationFn: async (productData: ProductFormData) => {
       const response = await fetch(
@@ -176,7 +175,7 @@ export const ProductDialog: React.FC<ProductDialogProps> = ({
     },
   });
 
-  // Edit 
+  // Edit
   const editProductMutation = useMutation({
     mutationFn: async (productData: ProductFormData) => {
       if (!product?.id) {
