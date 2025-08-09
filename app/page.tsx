@@ -1,14 +1,6 @@
-"use client";
-import Navbar from "@/components/Navbar";
-import FilterList from "@/components/products/FilterList";
-import ProductList from "@/components/products/ProductList";
-import Image from "next/image";
+'use client';
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return (
-    <div>
-    <Navbar />
-    </div>
-
-  );
+  redirect("/tic-tac-toe-app");
 }
