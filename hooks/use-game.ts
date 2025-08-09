@@ -47,8 +47,6 @@ export const useGameLogic = () => {
 
   const handleRoundEnd = (winner: "X" | "O" | "draw" | null) => {
     dispatch(endRound({ winner }));
-
-    // Check if match is over
     const isMatchOver =
       gameState.currentRound >= 5 ||
       gameState.roundWins.player1 >= 3 ||

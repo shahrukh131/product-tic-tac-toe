@@ -15,9 +15,7 @@ const RoundEndScreen = ({ gameState, dispatch }: any) => {
           {gameState.winner === "draw" ? (
             <>
               <div className="text-7xl sm:text-8xl mb-4">🤝</div>
-              <h2 className="text-3xl font-bold text-black mb-2">
-                Epic Draw!
-              </h2>
+              <h2 className="text-3xl font-bold text-black mb-2">Epic Draw!</h2>
               <p className="text-gray-600 text-lg">Honor to both warriors.</p>
             </>
           ) : (
@@ -39,9 +37,7 @@ const RoundEndScreen = ({ gameState, dispatch }: any) => {
         </div>
 
         <div className="bg-gray-50 rounded-lg p-4 my-6 border border-gray-200">
-          <p className="text-black font-semibold mb-4 text-lg">
-            War Standings
-          </p>
+          <p className="text-black font-semibold mb-4 text-lg">War Standings</p>
           <div className="space-y-2">
             <div className="flex justify-between items-center bg-white rounded-md p-3 border border-gray-200">
               <span className="text-gray-800 font-medium truncate pr-2">

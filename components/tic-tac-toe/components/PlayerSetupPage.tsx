@@ -8,7 +8,6 @@ const PlayerSetupPage = ({ gameState, dispatch }: any) => {
   const [player2, setPlayer2] = React.useState(gameState.players.player2);
 
   const handleStartMatch = () => {
-
     if (player1.trim() && player2.trim() && player1.trim() !== player2.trim()) {
       dispatch(
         setPlayers({
@@ -20,14 +19,11 @@ const PlayerSetupPage = ({ gameState, dispatch }: any) => {
     }
   };
 
-
   const isFormValid =
     player1.trim() && player2.trim() && player1.trim() !== player2.trim();
 
   return (
-
     <div className="h-[calc(100vh-61px)] bg-white text-black flex items-center justify-center p-4 font-sans">
-
       <div className="w-full max-w-md p-8 border border-gray-200 rounded-lg shadow-sm">
         <div className="text-center mb-8">
           <Image
@@ -37,9 +33,7 @@ const PlayerSetupPage = ({ gameState, dispatch }: any) => {
             height={60}
             className="mx-auto mb-4"
           />
-          <h1 className="text-4xl font-bold text-black mb-2">
-            Tic-Tac-Toe
-          </h1>
+          <h1 className="text-4xl font-bold text-black mb-2">Tic-Tac-Toe</h1>
           <p className="text-gray-600 text-lg">Enter player names to start</p>
         </div>
 
@@ -72,7 +66,6 @@ const PlayerSetupPage = ({ gameState, dispatch }: any) => {
             />
           </div>
 
-
           <button
             onClick={handleStartMatch}
             disabled={!isFormValid}
@@ -82,7 +75,6 @@ const PlayerSetupPage = ({ gameState, dispatch }: any) => {
             Start Game
           </button>
         </div>
-
 
         <div className="mt-8 pt-6 border-t border-gray-200">
           <button

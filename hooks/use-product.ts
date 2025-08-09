@@ -26,7 +26,7 @@ const fetchProducts = async (
 };
 export const useProducts = (selectedCategories?: number[]) => {
   return useQuery({
-    queryKey: ["products", selectedCategories], // Include selectedCategories in query key
+    queryKey: ["products", selectedCategories], 
     queryFn: () => fetchProducts(selectedCategories),
   });
 };
